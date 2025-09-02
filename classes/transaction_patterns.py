@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 class Transaction:
     def __init__(self, data):
-        # data is expected to be a pandas DataFrame with an 'amount' column
         self.df = data
+        self.df['amount_transform'] = np.log10(self.df['amount']) 
         self.visualize()
 
     def visualize(self):
@@ -31,7 +31,7 @@ class Transaction:
         # Metrics row
         col1, col2 = st.columns(2)
         with col1:
-            st.dataframe(desc_fmt, use_container_width=False)
+            st.dataframe(desc_fmt, use_container_width=True)
         with col2:
             # Explanatory bullets
             st.subheader("Distribution Insight")
@@ -44,14 +44,53 @@ class Transaction:
             - This shows that 50% of all transactions fall between ₹287 and ₹1588 (mostly low to mid-value).
                 """
             )
-        # Histogram of amounts
+        
         st.subheader("Amount distribution",divider=True)
-        fig, ax = plt.subplots(figsize=(10, 4))  # adjust size as needed
-        sns.histplot(self.df['amount'], bins=50, kde=True, ax=ax)
-        ax.set_xlabel("Amount")
-        ax.set_ylabel("Count")
-        ax.set_title("Histogram of Transaction Amounts (with KDE)")
-        st.pyplot(fig)
+        #tabs for histogram and description
+        hist1, hist2,hist3= st.tabs(["Chart","Description","Boxplots"])
+        with hist1:
+            self.histogram()
+        with hist2:
+            self.histogram_description()
+        with hist3:
+            self.boxplot()
+        
+        col3, col4= st.columns(2)
+        
+        with col3:
+            self.frequency_type()
+            
+
+        with col4:
+            self.top_merchants()
+   
+
+
+
+    def histogram(self):
+        # Histogram of amounts
+        hist_tab_before, hist_tab_after = st.columns(2)
+        
+        with hist_tab_before:
+            st.caption("Before Transformation")
+            fig, ax = plt.subplots(figsize=(8, 4))  
+            sns.histplot(self.df['amount'], bins=50, kde=True, ax=ax)
+            ax.set_xlabel("Amount")
+            ax.set_ylabel("Count")
+            ax.set_title("Histogram of Transaction Amounts (with KDE)")
+            st.pyplot(fig)
+        
+        with hist_tab_after:
+            st.caption("After Transformation")
+            fig, ax= plt.subplots(figsize=(8,4))
+            sns.histplot(self.df['amount_transform'],bins=50,kde=True,ax=ax)
+            ax.set_xlabel("Amount")
+            ax.set_ylabel("Count")
+            ax.set_title("Histogram of Transaction After Transformation")
+            st.pyplot(fig)
+        
+    
+    def histogram_description(self):
 
         #customer transcation behavior
         st.subheader("Customer Transaction Behavior", divider=True)
@@ -65,18 +104,15 @@ class Transaction:
             """
         )
 
-        self.boxplot()
-        
     def boxplot(self):
-        st.subheader("Boxplots: Raw vs Transformed", divider=True)
-
+        st.markdown("### Boxplots Raw vs Transformed")
         # Ensure the transformed column exists; create if needed (example: log1p)
         if 'amount_transform' not in self.df.columns:
             self.df['amount_transform'] = np.log10(self.df['amount'])  # optional example transform
 
-        col1, col2 = st.columns(2)
+        box1, box2,box3 = st.columns(3)
 
-        with col1:
+        with box1:
             st.caption("Before transformation")
             fig1, ax1 = plt.subplots(figsize=(5, 3.5))
             sns.boxplot(x=self.df['amount'], ax=ax1)
@@ -84,8 +120,7 @@ class Transaction:
             ax1.set_title("Raw Amounts")
             fig1.tight_layout()
             st.pyplot(fig1)
-
-        with col2:
+        with box2:
             st.caption("After transformation")
             fig2, ax2 = plt.subplots(figsize=(5, 3.5))
             sns.boxplot(x=self.df['amount_transform'], ax=ax2)
@@ -93,8 +128,13 @@ class Transaction:
             ax2.set_title("Log-Transformed Amounts")
             fig2.tight_layout()
             st.pyplot(fig2)
+        with box3:
+            self.box_description()
 
+
+    def box_description(self):
         # Explanatory markdown
+        st.caption("Description")
         st.markdown(
             """
         On the raw scale, the boxplot shows a long tail with extreme outliers up to :blue-background[**₹33,000**], while most data is compressed below :blue-background[**₹3,000**].  
@@ -102,9 +142,80 @@ class Transaction:
             """
         )
     
+    def frequency_type(self):
+        st.subheader("Frequency of different transcation type",divider=True)
+        freq1_chart,freq_description = st.tabs(["Pie Chart", "Analysis"])
+
+        with freq1_chart:
+            self.pie_chart()
+
+        with freq_description:
+            st.markdown("""
+            - **P2P (Peer-to-Peer)**: :blue[45%] → Almost half of all transactions are direct money transfers between individuals → Suggests strong adoption of digital wallets/UPI for personal use.
+            - **P2M (Peer-to-Merchant)**: :blue[35%] → Over one-third of transactions are customer-to-business (e.g., shopping, services) → Indicates digital payments are widely accepted in retail/merchant space.
+            - **Bill Payments**: :blue[15%] → Utility payments (electricity, gas, internet) form a significant chunk → Shows that digital platforms are being used for recurring payments.
+            - **Recharges**: :blue[5%] → Smallest share; likely because recharge is low-ticket and infrequent compared to daily P2P/P2M.
+
+            - **Customer Behavior — Insight**: Customers mainly use the platform for everyday personal transfers (P2P) and shopping (P2M).
+            - **Customer Behavior — Opportunity**: This suggests growth opportunities in merchant onboarding and bill payment automation.
+
+            - **Risk / Fraud — Observation**: Fraud tends to be more prevalent in P2P, since it involves direct transfers without merchant oversight.
+            """)
 
             
 
-        
+    
+    def pie_chart(self):
+        counts = self.df['type'].value_counts(dropna=False)  # includes NaN if any
+        labels = counts.index.astype(str)
+        sizes = counts.values
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.pie(sizes, labels=labels, autopct="%.0f%%", startangle=90, counterclock=False)
+        ax.axis('equal')  # keep circle
+        st.pyplot(fig)
+
+    def top_merchants(self):
+        st.subheader("Top Merchant Category",divider=True)
+        merchant_tab1, merchant_tab2= st.tabs(["Chart", "Description"])
+        with merchant_tab1:
+            self.histogram_top_merchants()
+        with merchant_tab2:
+            st.markdown("""
+            - Fraud may concentrate in Shopping (card-not-present frauds, online scams) or Utilities (fake biller accounts).  
+            - Categories with low natural spending (e.g., Healthcare, Transport) might also flag suspicious outliers if high-value transactions suddenly appear.
+            """)
+
+    
+    #histogram for top merchant
+    def histogram_top_merchants(self):
+        merchant_temp=self.df.groupby(['category'])['amount'].sum().sort_values(ascending=False)
+        merchant_tem= pd.DataFrame(merchant_temp)
+        fig = plt.figure(figsize=(8, 5))
+        sns.barplot(
+            merchant_tem,
+            x="amount",
+            y="category",
+            palette="viridis",
+            hue="category"
+        )
+
+        for index, value in enumerate(merchant_tem["amount"]):
+                if index==9 or index==8:
+                    plt.text(value - 5_500_000, index, f"₹{value/1e6:.1f}M", va="center", color="white", fontsize=9)
+                else:
+                    plt.text(value - 7_500_000, index, f"₹{value/1e6:.1f}M", va="center", color="white", fontsize=9)
+
+
+        plt.title("Total Transaction Amount by Merchant Category", fontsize=12)
+        plt.xlabel("Amount (INR)", fontsize=12)
+        plt.ylabel("Merchant Category", fontsize=12)
+        plt.tight_layout()
+
+            # Show in Streamlit (exact plot, no changes)
+        st.pyplot(fig)
+                
+
+            
 
 
