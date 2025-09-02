@@ -16,7 +16,12 @@ class FraudInsights():
     
     def visualize(self):
         self.fraud_rate()
+        self.fraud_vs_non_fraud()
     
+
+
+
+
     # Helper: compute rate table for a given categorical column
     def fraud_rate_by(self,df, col):
         g = df.groupby(col, dropna=False)["fraud_flag"].agg(
@@ -88,5 +93,75 @@ class FraudInsights():
             fig_net.update_layout(xaxis_tickformat=".2f")
             st.plotly_chart(fig_net)
 
+    
+    def prep_counts(self,df, by):
+        agg = df.groupby([by], dropna=False)["fraud_flag"].agg(
+            fraud="sum", total="count"
+        ).reset_index()
+        agg["non_fraud"] = agg["total"] - agg["fraud"]
+        return agg
+    
+    def fraud_vs_non_fraud(self):
+        temp_df=self.df.copy()
+        st.subheader("Fraud vs Non-Fraud — Grouped Bars")
+
+        tab1,tab2= st.tabs(["Chart","Description"])
         
+        with tab1:
+            tab_txn, tab_device, tab_network = st.tabs(["Transaction Type", "Device Type", "Network Type"])  # [web:214]
+
+            with tab_txn:
+                col = "type"
+                agg = self.prep_counts(temp_df, col)
+                long_df = agg.melt(id_vars=[col], value_vars=["fraud","non_fraud"],
+                                var_name="class", value_name="count")
+                fig = px.bar(long_df, x=col, y="count", color="class", barmode="group",
+                            title="By Transaction Type", template="plotly_white")
+                fig.update_layout(legend_title_text="", xaxis_title="", yaxis_title="Count")
+                st.plotly_chart(fig, use_container_width=True)  # [web:202]
+
+            with tab_device:
+                col = "device_type"
+                agg = self.prep_counts(temp_df, col)
+                long_df = agg.melt(id_vars=[col], value_vars=["fraud","non_fraud"],
+                                var_name="class", value_name="count")
+                fig = px.bar(long_df, x=col, y="count", color="class", barmode="group",
+                            title="By Device Type", template="plotly_white")
+                fig.update_layout(legend_title_text="", xaxis_title="", yaxis_title="Count")
+                st.plotly_chart(fig, use_container_width=True)  # [web:202]
+
+            with tab_network:
+                col = "network_type"
+                agg = self.prep_counts(temp_df, col)
+                long_df = agg.melt(id_vars=[col], value_vars=["fraud","non_fraud"],
+                                var_name="class", value_name="count")
+                fig = px.bar(long_df, x=col, y="count", color="class", barmode="group",
+                            title="By Network Type", template="plotly_white")
+                fig.update_layout(legend_title_text="", xaxis_title="", yaxis_title="Count")
+                st.plotly_chart(fig, use_container_width=True)  # [web:202]
         
+        with tab2:
+            st.markdown("""
+            ### Fraud concentration overview
+            - :blue[Transaction types:] **P2M** and **P2P** show the highest fraud counts, indicating attacker focus on merchant payments and peer transfers where urgency and social prompts are common.
+            - :blue[Device type:] **Android ~350** frauds vs **Web ~26** and **iOS ~30**, reflecting a mobile-first exposure and broader attack surface on Android.
+            - :blue[Network type:] Higher counts align with higher-throughput networks — **4G ~149k**, **5G ~62k**, **Wi‑Fi ~25k**, **3G ~12k** — suggesting more traffic enables more attempts.
+
+            ### Interpretation
+            - :blue[Why P2M/P2P?] **P2M** often correlates with promo-driven purchases and fake merchant impersonation, while **P2P** is prone to social-engineering “urgent transfer” schemes.
+            - :blue[Why Android?] Larger user base and APK ecosystem risk increase exposure; **Web/iOS** lower counts likely reflect smaller share and platform controls.
+            - :blue[Why 4G/5G?] Faster networks facilitate rapid attempts and bursts; **Wi‑Fi** peaks can reflect public hotspot risks; **3G** is lower in line with usage.
+
+            ### Recommended actions
+            - :blue[Type-focused controls:] Tighten velocity limits, beneficiary risk scoring, and step-up authentication for **P2M** and **P2P**, especially during promotions and weekends.
+            - :blue[Device-aware hardening:] Strengthen device fingerprinting and runtime integrity on **Android**; surface contextual in‑app scam warnings pre‑transaction.
+            - :blue[Network-aware policies:] Apply stricter thresholds on **4G/5G** high-velocity patterns; mark risky **Wi‑Fi** contexts for additional verification.
+
+            ### Talk track
+            - :blue[Where is fraud concentrated?] **P2M/P2P**, **Android**, and high-throughput networks (**4G/5G**).
+            - :blue[So what?] Prioritize dynamic limits, step‑up checks, and behavioral profiling on these contexts to reduce loss with minimal friction.
+            - :blue[Expected impact] Faster suppression of high-volume attack paths while minimizing false positives through targeted controls.
+            """)
+
+                    
+                    
