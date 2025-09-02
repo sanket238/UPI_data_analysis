@@ -82,12 +82,13 @@ class Transaction:
         
         with hist_tab_after:
             st.caption("After Transformation")
-            fig, ax= plt.subplots(figsize=(8,4))
-            sns.histplot(self.df['amount_transform'],bins=50,kde=True,ax=ax)
-            ax.set_xlabel("Amount")
-            ax.set_ylabel("Count")
-            ax.set_title("Histogram of Transaction After Transformation")
-            st.pyplot(fig)
+            st.image("images/log_transformation.png",use_container_width=True)
+            #fig, ax= plt.subplots(figsize=(8,4))
+            #sns.histplot(self.df['amount_transform'],bins=50,kde=True,ax=ax)
+            #ax.set_xlabel("Amount")
+            ##ax.set_ylabel("Count")
+            #ax.set_title("Histogram of Transaction After Transformation")
+            #st.pyplot(fig)
         
     
     def histogram_description(self):
