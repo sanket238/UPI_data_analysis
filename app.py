@@ -9,6 +9,7 @@ from dataloader import Dataloader
 from classes.transaction_patterns import Transaction
 from classes.demographic import Demographic
 from classes.temporal import Temporal
+from classes.fraud_insights import FraudInsights
 
 st.title("Unified Payments (UPI) Fraud Analytics")
 
@@ -34,3 +35,6 @@ elif option== "Demographic Insights":
     demographic= Demographic(df)
 elif option== "Temporal Patterns":
     temporal= Temporal(df)
+elif option=="Fraud Insights":
+    fraud= FraudInsights(df)
+
