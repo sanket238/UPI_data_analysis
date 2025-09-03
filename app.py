@@ -18,7 +18,7 @@ st.set_page_config(layout='wide',page_title="UPI Analytics")
 
 
 #loading dataset
-dataloader= Dataloader("dataset\cleaned_v1.csv")
+dataloader= Dataloader("dataset/cleaned_v1.csv")
 df=dataloader.df
 df.rename(columns={"sender_age_group":"age_group"},inplace=True)
 df.drop(columns="receiver_age_group",inplace=True)
